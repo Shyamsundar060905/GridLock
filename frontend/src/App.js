@@ -30,7 +30,7 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [wardFilter, setWardFilter] = useState("ALL");
   const [show, setShow] = useState({
-    traffic: true, heatmap: true, circles: true, blindspots: true, recidivists: false,
+    traffic: false, heatmap: false, circles: true, blindspots: true, recidivists: false,
   });
 
   // load data
@@ -97,9 +97,10 @@ function App() {
 
     if (show.heatmap && heat.length) {
       try {
+        // toned-down intensity wash (it's the RAW patrol footprint — opt-in overlay)
         layers.current.heatmap = mapplsClassObject.HeatmapLayer({
-          map, data: heat, opacity: 0.7, radius: 35, maxIntensity: 8, fitbounds: false,
-          gradient: ["rgba(0,0,255,0)", "rgba(0,170,255,0.6)", "rgba(0,255,120,0.7)", "rgba(255,200,0,0.85)", "rgba(255,50,0,0.9)"],
+          map, data: heat, opacity: 0.45, radius: 22, maxIntensity: 18, fitbounds: false,
+          gradient: ["rgba(0,0,255,0)", "rgba(0,150,255,0.45)", "rgba(0,220,120,0.55)", "rgba(255,210,0,0.7)", "rgba(255,70,0,0.8)"],
         });
       } catch (e) { console.log("heatmap error", e); }
     }
@@ -107,18 +108,21 @@ function App() {
     if (show.circles && visible.length) {
       // raw mode colours by violation count (the patrol-route view); debiased by priority score
       const metric = (h) => (mode === "raw" ? (h.violation_count || 0) : scoreOf(h));
-      const maxScore = Math.max(...hotspots.map(metric)) || 1;
-      const color = (s) => (s / maxScore > 0.65 ? "#C62828" : s / maxScore > 0.35 ? "#EF6C00" : "#F9A825");
-      const radius = (s) => 250 + (s / maxScore) * 500;
+      const vals = hotspots.map(metric).sort((a, b) => a - b);
+      const maxScore = vals[vals.length - 1] || 1;
+      const q = (p) => vals[Math.floor(p * (vals.length - 1))] || 0;
+      const p80 = q(0.80), p55 = q(0.55);   // quantile bands -> real red/amber/yellow spread
+      const color = (s) => (s >= p80 ? "#C62828" : s >= p55 ? "#EF6C00" : "#F9A825");
+      const radius = (s) => 130 + (s / maxScore) * 300;
       visible.forEach((h) => {
         const isBlind = h.blindspot && show.blindspots && mode === "debiased";
         try {
           const c = mapplsClassObject.Circle({
             map, center: { lat: h.lat, lng: h.lng }, radius: radius(metric(h)),
-            fillColor: color(metric(h)), fillOpacity: 0.45,
+            fillColor: color(metric(h)), fillOpacity: 0.3,
             // blind spots get a bold magenta ring so they pop against the impact colours
             strokeColor: isBlind ? "#8E24AA" : color(metric(h)),
-            strokeOpacity: 0.95, strokeWeight: isBlind ? 4 : 2,
+            strokeOpacity: 0.9, strokeWeight: isBlind ? 4 : 1.5,
           });
           if (c && c.addListener) c.addListener("click", () => setSelected(h));
           layers.current.circles.push(c);
