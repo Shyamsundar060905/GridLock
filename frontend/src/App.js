@@ -15,6 +15,7 @@ const MAPPLS_TOKEN = "YOUR_MAPPLS_TOKEN_HERE";
 // priority_score is the debiased model output; fall back to legacy impact_score
 const scoreOf = (h) => (h.priority_score ?? h.impact_score ?? 0);
 const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString());
+const CIS_COLOR = { Critical: "#B71C1C", High: "#E64A19", Medium: "#F9A825", Low: "#43A047" };
 
 function App() {
   const mapRef = useRef(null);
@@ -271,6 +272,42 @@ function App() {
             <div>Congestion impact: <b>{selected.congestion_ratio}×</b> <span style={{ color: "#888" }}>(road capacity)</span></div>
             <div>Priority score: <b>{scoreOf(selected).toFixed(3)}</b></div>
           </div>
+
+          {/* CONGESTION IMPACT SCORE (CIS) */}
+          {selected.cis != null && (
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #eee" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ background: CIS_COLOR[selected.cis_class] || "#999", color: "white",
+                               fontWeight: 700, fontSize: 12, padding: "3px 9px", borderRadius: 12 }}>
+                  {selected.cis_class}
+                </span>
+                <span style={{ fontSize: 20, fontWeight: 800, color: "#1A237E" }}>{selected.cis}</span>
+                <span style={{ fontSize: 11, color: "#888" }}>/100 CIS</span>
+                <span style={{ fontSize: 11, color: "#888", marginLeft: "auto" }}>
+                  conf {Math.round((selected.cis_confidence ?? 0) * 100)}%
+                </span>
+              </div>
+              {selected.cis_components && (
+                <div style={{ display: "flex", height: 8, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
+                  {[["violation_load", "#1A237E"], ["excess_congestion", "#C62828"],
+                    ["carriageway_obstruction", "#EF6C00"], ["recurrence", "#00897B"]].map(([k, c]) => (
+                    <div key={k} title={`${k}: ${selected.cis_components[k]} pts`}
+                         style={{ width: `${selected.cis_components[k]}%`, background: c }} />
+                  ))}
+                </div>
+              )}
+              {selected.cis_explanation && (
+                <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11.5, color: "#444", lineHeight: 1.5 }}>
+                  {selected.cis_explanation.map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              )}
+              {selected.low_confidence && (
+                <div style={{ fontSize: 10.5, color: "#E65100", marginTop: 6 }}>
+                  ⚠ ECS from proxy (no live traffic feed) — low confidence
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
