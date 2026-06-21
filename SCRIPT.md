@@ -47,9 +47,17 @@ figures are in the banner at the top of the map (`summary.json`).
 > traffic — BUT observed patrol there is low. High impact, low enforcement.
 > That's where to send the next patrol."
 
-**5. Click a blind-spot circle.**
-> "Each one is quantified: predicted latent rate, congestion impact from road
-> geometry, the ward it's in. Actionable, not just a heatmap."
+**5. Click a blind-spot circle → show the Congestion Impact Score.**
+> "Each hotspot gets an explainable 0–100 score and a Critical/High/Medium/Low
+> class. It's not a black box — it breaks into four weighted parts: violation
+> load (debiased, not raw counts), carriageway obstruction from road width,
+> excess congestion, and recurrence. The panel literally tells the officer
+> *why*: 'Violation load +28.8 pts, mostly cars and autos; 1 of 1 lanes blocked;
+> recurring 24 of 30 days.' That sentence is the enforcement justification."
+- If asked about the live-traffic part: "Excess congestion is the one component
+  that needs a live speed feed — we ship an OSM proxy flagged low-confidence, and
+  a Mappls Flow feed drops into the same interface. There's a read-only API
+  (`/hotspots/{id}`) serving this exact score per hotspot."
 
 **6. Turn on `Recidivist vehicles` (blue dots).**
 > "Separate lever: 2,352 vehicles offend repeatedly, often at the *same* spot —

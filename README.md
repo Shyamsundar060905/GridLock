@@ -1,9 +1,53 @@
-# Gridlock 2.0 — Parking-Induced Congestion Intelligence
+# 🚦 Gridlock 2.0 — Parking-Induced Congestion Intelligence
 
-Detects illegal-parking **hotspots** in Bengaluru, estimates the **latent
-violation rate** (debiased for patrol coverage), and ranks locations by their
-**congestion impact** — so enforcement targets where it matters, not just where
-patrols already go.
+![Status](https://img.shields.io/badge/status-hackathon%20build-orange)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![LightGBM](https://img.shields.io/badge/LightGBM-tweedie-9ACD32)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-read--only-009688?logo=fastapi&logoColor=white)
+![Mappls](https://img.shields.io/badge/Maps-Mappls%20SDK-EE2737)
+![OpenStreetMap](https://img.shields.io/badge/features-OpenStreetMap-7EBC6F?logo=openstreetmap&logoColor=white)
+
+> Detects illegal-parking **hotspots** in Bengaluru, estimates the **latent
+> violation rate** (debiased for patrol coverage), scores each location's
+> **Congestion Impact (CIS, 0–100)** with a plain-language explanation, and
+> flags **enforcement blind spots** — so patrols target where it matters, not
+> just where they already go.
+
+---
+
+## ⚡ Quick start (run the site)
+
+The map already ships with precomputed data in `frontend/public/`, so you only
+need the frontend to see the demo.
+
+```bash
+# 1. Map (required)
+cd frontend
+npm install                       # first time only
+npm start                         # opens http://localhost:3000
+```
+> Paste a fresh **Mappls token** into `frontend/src/App.js` (`MAPPLS_TOKEN`) or
+> the map loads blank. Tokens expire ~24h — regenerate at apis.mappls.com.
+
+```bash
+# 2. CIS API (optional — serves the score contract per hotspot)
+cd api
+pip install -r requirements.txt
+uvicorn main:app --port 8000      # docs at http://localhost:8000/docs
+```
+
+```bash
+# 3. Retrain / regenerate data (optional)
+#    Open model/gridlock_colab.ipynb in Colab → Run all → download outputs/*.json
+#    into frontend/public/.  Or locally:
+python -m venv .venv && . .venv/Scripts/activate
+pip install -r model/requirements.txt
+cd model && GRIDLOCK_CSV="../<violations>.csv" python gridlock_pipeline.py
+cp outputs/*.json ../frontend/public/
+```
+
+---
 
 ## The core problem with the data
 
@@ -64,40 +108,69 @@ model/      ML pipeline + Colab notebook (the intelligence layer)
   gridlock_pipeline.py   source of truth — runs locally and in Colab
   gridlock_colab.ipynb   generated notebook — upload to Colab to train
   make_notebook.py       regenerates the .ipynb from the .py
+api/        Thin read-only FastAPI service over the CIS scores (contract endpoint)
 backend/    Legacy descriptive pipeline (Mappls live-traffic enrichment)
-frontend/   React + Mappls map — priority hotspots, blind spots, recidivists
+frontend/   React + Mappls map — priority hotspots, blind spots, recidivists, CIS
 ```
 
-## Run the model (Colab — recommended)
-1. Open `model/gridlock_colab.ipynb` in Colab.
-2. Run the install cell, then upload the violation CSV when prompted (or set
-   `CSV_PATH`).
-3. Run all. It writes `outputs/heatmap_points.json`, `hotspots_full.json`,
-   `blindspots.json`, `recidivists.json`.
-4. Download those into `frontend/public/`.
+## Congestion Impact Score (CIS)
+Each hotspot gets an explainable **0–100 CIS** and a Low/Medium/High/Critical
+class, composed of four stored, weighted subscores:
 
-## Run the model (local)
-```bash
-python -m venv .venv && . .venv/Scripts/activate   # or .venv/bin/activate
-pip install -r model/requirements.txt
-cd model
-GRIDLOCK_CSV="../jan to may police violation_anonymized791b166.csv" python gridlock_pipeline.py
-# tip: GRIDLOCK_SAMPLE=0.05 for a fast smoke test; GRIDLOCK_OSM=0 to skip OSM
-cp outputs/*.json ../frontend/public/
-```
-The `.py` and the notebook are the same code — edit the `.py`, then
-`python make_notebook.py` to regenerate the notebook.
+`CIS = 100 × (0.30·VLS + 0.20·COS + 0.35·ECS + 0.15·RPS)`
 
-## Run the map
-1. Get a Mappls token (console → app → static key) and paste it into
-   `frontend/src/App.js` (`MAPPLS_TOKEN`). Tokens expire ~24h.
-2. ```bash
-   cd frontend && npm install && npm start
-   ```
+- **VLS** (violation load) — the **debiased latent rate** × mean violation
+  severity (vehicle type × offence code), so it doesn't re-inherit patrol bias.
+- **COS** (carriageway obstruction) — parked-vehicle width × concurrency ÷ OSM
+  road width.
+- **ECS** (excess congestion) — live speed deficit vs baseline. No live feed in
+  batch, so it uses an OSM demand×capacity proxy flagged `low_confidence`; a
+  Mappls Flow feed drops in via the `ECSProvider` interface unchanged.
+- **RPS** (recurrence) — days with a violation in the trailing 30.
 
-Map features: live traffic flow, raw violation heatmap, priority hotspots
-(red→amber by score), blind spots (magenta ring), recidivist vehicles (blue),
-and a ward "Enforcement Priorities" panel.
+The four weighted point-contributions are stored and rendered as the
+explanation. A **Phase-2** trained classifier (LightGBM + SHAP + calibration)
+swaps in behind the same contract once ≥3 months of measured-delay outcomes
+exist — interface stubbed in the pipeline. Adapted to this dataset:
+`duration_factor` is dropped (`closed_datetime` is 100% NULL) and ECS uses the
+proxy described above.
+
+Serve it: `cd api && pip install -r requirements.txt && uvicorn main:app --port 8000`
+(`GET /hotspots/{id}` returns the contract; see `api/README.md`).
+
+**Map features:** live traffic flow, raw violation heatmap, debiased/raw
+before-after toggle, priority hotspots (red→amber by score), blind spots
+(magenta ring), recidivist vehicles (blue), per-hotspot CIS breakdown, and a
+ward "Enforcement Priorities" panel.
+
+**Dev tips:** `GRIDLOCK_SAMPLE=0.05` for a fast local smoke test, `GRIDLOCK_OSM=0`
+to skip OSM. The pipeline `.py` and the Colab notebook are the same code — edit
+the `.py`, then `python model/make_notebook.py` to regenerate the notebook.
+
+## ✅ Roadmap — done vs. left
+
+**Done**
+- [x] H3 indexing + UTC→IST temporal fix
+- [x] Debiasing: IPW, fixed-junction anchor, device-ID negative sampling
+- [x] OSM feature enrichment (roads, POIs, metro)
+- [x] LightGBM latent-rate model + spatio-temporal CV + SHAP
+- [x] Enforcement blind-spot detector
+- [x] Recidivist-vehicle clustering
+- [x] Congestion Impact Score (Phase-1 rule classifier) + explanations
+- [x] Read-only CIS API (FastAPI)
+- [x] React map: hotspots, blind spots, recidivists, CIS panel, before/after toggle
+
+**Left**
+- [ ] **Live Mappls Flow feed for ECS** — currently an OSM proxy flagged
+      `low_confidence`; the `ECSProvider` interface is ready for it
+- [ ] **8-week segment speed baseline** — needs continuous collection (can't be
+      backfilled from the historical dataset)
+- [ ] **Phase-2 trained CIS classifier** — needs ≥3 months of measured-delay
+      outcome labels; interface stubbed (`Phase2Classifier`)
+- [ ] **Persistence + scheduler** — today it's batch → static JSON; a DB +
+      cron-style recompute would make it a true live service
+- [ ] VIIRS night-light equity layer · STGCN ensemble · set-cover patrol routing
+      (see below)
 
 ## Future work (deferred, by design)
 
