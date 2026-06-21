@@ -1,0 +1,14 @@
+pandas
+numpy
+h3
+lightgbm
+scikit-learn
+shap
+osmnx
+geopandas
+shapely
+matplotlib
+# STGCN ensemble (stgcn_pipeline.py) — preinstalled in Colab
+torch
+# VIIRS equity radiance (viirs_equity.py) — optional, only if you pass --viirs
+rasterio

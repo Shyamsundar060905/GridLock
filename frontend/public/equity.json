@@ -1,0 +1,57 @@
+{
+  "wards": 243,
+  "radiance_available": false,
+  "note": "Radiance pending \u2014 supply a VIIRS raster (--viirs) to compute the income-vs-enforcement equity correlation. Spatial density computed below.",
+  "top_enforced_wards": [
+    {
+      "ward_name": "Gandhinagar",
+      "violations": 31773,
+      "density_per_km2": 16539.3
+    },
+    {
+      "ward_name": "Chickpete",
+      "violations": 8787,
+      "density_per_km2": 12340.2
+    },
+    {
+      "ward_name": "Dharmaraya Swamy Temple Ward",
+      "violations": 12737,
+      "density_per_km2": 9388.5
+    },
+    {
+      "ward_name": "Nagapura",
+      "violations": 13157,
+      "density_per_km2": 7669.4
+    },
+    {
+      "ward_name": "Vijayanagar",
+      "violations": 3917,
+      "density_per_km2": 7206.1
+    },
+    {
+      "ward_name": "Sampangiram Nagar",
+      "violations": 21354,
+      "density_per_km2": 6029.4
+    },
+    {
+      "ward_name": "Subramanya Nagar",
+      "violations": 4730,
+      "density_per_km2": 5030.7
+    },
+    {
+      "ward_name": "Chamrajapet",
+      "violations": 6860,
+      "density_per_km2": 4437.0
+    },
+    {
+      "ward_name": "Dr. Raj Kumar Ward",
+      "violations": 5504,
+      "density_per_km2": 4181.3
+    },
+    {
+      "ward_name": "Ulsoor",
+      "violations": 7644,
+      "density_per_km2": 4118.2
+    }
+  ]
+}
