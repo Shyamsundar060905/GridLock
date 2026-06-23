@@ -8,8 +8,10 @@ import { useEffect, useRef, useState, useMemo } from "react";
 
 const mapplsClassObject = new mappls();
 
-// ─── Paste a FRESH token (regenerate in console — old ones expire in 24h) ───
-const MAPPLS_TOKEN = "YOUR_MAPPLS_TOKEN_HERE";
+// ─── Token comes from the environment (CRA reads REACT_APP_* at build time) ───
+// Local: put REACT_APP_MAPPLS_TOKEN=... in frontend/.env.local (gitignored).
+// Vercel: set it in Project → Settings → Environment Variables. See .env.example.
+const MAPPLS_TOKEN = process.env.REACT_APP_MAPPLS_TOKEN;
 // ─────────────────────────────────────────────────────────────────────────────
 
 // priority_score is the debiased model output; fall back to legacy impact_score
