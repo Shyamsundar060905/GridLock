@@ -16,6 +16,22 @@
 
 ---
 
+## 📸 The product
+
+**Citywide admin console — debiased priority hotspots.** The full enforcement view:
+298k violations reduced to the latent, patrol-corrected rate × congestion impact,
+with blind spots, recidivist clusters, ward priorities, and a debiased ⇄ raw toggle.
+
+![Admin view — debiased citywide hotspots](docs/screenshot-admin-debiased.png)
+
+**"My area" view — scoped to one neighbourhood.** The same engine at citizen
+altitude: pick your area, see only your hotspots, your blind spots, and how your
+ward ranks — deliberately sparse, no vehicle plates.
+
+![My area view — Jakkasandra](docs/screenshot-my-area.jpeg)
+
+---
+
 ## ⚡ Quick start (run the site)
 
 The map already ships with precomputed data in `frontend/public/`, so you only
@@ -245,8 +261,21 @@ activates the moment the input exists):
       join + equity report are done and run without it
 
 ## Future work (genuinely not started)
-- **Weather & events features.** Hourly rainfall (free historical) and a
-  holiday/event calendar to explain temporal variance.
+- **Parking-angle aware COS.** Today COS (`width × concurrency ÷ road width`)
+  assumes *parallel* parking. A large share of Bengaluru violations — especially
+  outside shops — are perpendicular/angled and consume 2–3× the carriageway
+  depth. Add a parking-angle feature from OSM (`parking:lane` tag where present,
+  else a heuristic from junction proximity + road class) so obstruction reflects
+  the real footprint.
+- **Recency-weighted RPS.** RPS currently counts trailing-30-day violation days
+  uniformly, so a zone clean for 3 weeks then hit daily scores like one with 30
+  sporadic hits. Switch to exponential decay — `RPS = Σ exp(−λ·dᵢ) / normaliser`
+  (dᵢ = days since violation) — so RPS tracks recency *and* decays after a
+  successful crackdown, rewarding enforcement.
+- **Weather & events features.** Hourly rainfall (free historical) — rain shifts
+  both violation rate (patrols shelter) and congestion impact (wet roads lose
+  effective speed per unit blockage) — plus a holiday/event calendar to explain
+  temporal variance.
 - **Ensemble blend in production.** STGCN predictions are exported; blending them
   with the LightGBM latent rate into the live priority score is a small wiring step.
 
